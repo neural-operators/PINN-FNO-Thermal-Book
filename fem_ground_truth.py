@@ -6,7 +6,7 @@ problem used across the transient and steady-state chapters:
 
 on x in [0, 1], Dirichlet BCs T(0)=1, T(1)=0. Discretized with linear FEM in
 space and a fully-implicit backward-Euler step in time: k(x,T) is evaluated
-at the UNKNOWN T_next, so each step is nonlinear and is solved with
+at the unknown T_next, so each step is nonlinear and is solved with
 Newton-Raphson using an exact Jacobian (jax.jacfwd) of the residual on the
 free (interior) nodes.
 
@@ -33,8 +33,7 @@ generation (e.g. as a physics-residual training/monitoring signal).
 Three independent pieces, usable on their own or together:
   1. FEM solver          -- assemble_LM, solve_transient_fem_step,
                              compute_weak_residual, fem_rollout, batch_fem_rollout
-  2. In-distribution T0/alpha sampler (Yamazaki et al. 2025, Eng. w/ Computers
-     41:1-29, Sect. 3.3) -- generate_T0_alpha (+ its sub-generators)
+  2. In-distribution T0/alpha sampler -- generate_T0_alpha (+ its sub-generators)
   3. Out-of-distribution scenario builder (shape families x resolutions)
                           -- build_ood_scenarios (+ its shape functions)
 
@@ -147,22 +146,16 @@ def batch_fem_rollout(T0_batch, alpha_batch, steps, dt=DEFAULT_DT, rho_cp=DEFAUL
 
 
 # =============================================================================
-# In-distribution T0 / alpha sample generator (Yamazaki et al. 2025, Eng. w/
-# Computers 41:1-29, Sect. 3.3): training-style initial-temperature and
+# In-distribution T0 / alpha sample generator: initial-temperature and
 # conductivity fields drawn from a mixture of a random Fourier series, a
-# Gaussian random process, and a constant field. Eq. (19) in the paper is 2D
-# (x,y); the y-dependent terms are dropped here for a 1D domain, keeping the
-# same per-term c/A/B/C structure and Table 2 ranges.
+# Gaussian random process, and a constant field.
 # =============================================================================
-NSUM = 6   # NOT the paper's 50: summing that many random 1D sinusoids collapses
-           # via the law of large numbers -- every draw regresses toward the same
-           # mean shape (measured ~4x less per-sample spread at NSUM=50 vs NSUM=4).
-           # The paper's Eq. (19) is 2D, where sin(Cx)cos(Dy)-type cross terms keep
-           # contributing spatially-localized variation even after 50 are summed;
-           # our 1D reduction has no such cross-term structure to preserve variety.
-FOURIER_C_RANGE = (0.0, 1.5)          # per-term offset c_i (paper's Table 2)
-FOURIER_AMP_RANGE = (0.5, 1.5)        # per-term base amplitude, BEFORE the decay below
-FOURIER_FREQ_RANGE = (0.5, 8.0)       # random continuous frequency (paper-style, not fixed harmonics)
+NSUM = 6   # number of summed sinusoids. Many more terms (e.g. 50) average out:
+           # every draw approaches the same mean shape (about 4x less per-sample
+           # spread at NSUM=50 than at NSUM=4).
+FOURIER_C_RANGE = (0.0, 1.5)          # per-term offset c_i
+FOURIER_AMP_RANGE = (0.5, 1.5)        # per-term base amplitude, before the decay below
+FOURIER_FREQ_RANGE = (0.5, 8.0)       # random continuous frequency (not fixed harmonics)
 FOURIER_DECAY = 0.8                   # amplitude ~ base_amp / freq**DECAY
 T0_GENERATOR_NAMES = ["Fourier series", "Gaussian random process", "Constant field"]
 
@@ -174,13 +167,10 @@ def _minmax_norm(v):
 
 @partial(jax.jit, static_argnames=("n_nodes",))
 def generate_fourier_fn(key, n_nodes=DEFAULT_N_NODES):
-    """Hybrid of the paper's Eq. (19) random-Fourier generator and a colored-
-    noise (1/f) generator: keeps the paper's per-term offset c_i and RANDOM
-    CONTINUOUS frequency (not fixed harmonics), but borrows an explicit random
-    phase and a frequency-dependent amplitude decay (amp = base_amp /
-    freq**DECAY). The decay damps whichever terms happen to draw a high
-    frequency, which is what lets NSUM go up to 6 without the NSUM=50
-    collapse. Min-max normalized to [0,1]."""
+    """Random Fourier series: NSUM terms, each with a random offset c_i, a
+    random continuous frequency, a random phase and an amplitude that decays
+    with frequency (amp = base_amp / freq**DECAY), so high-frequency terms
+    stay small. Min-max normalized to [0,1]."""
     x = jnp.linspace(0, 1, n_nodes)
     kc, ka, kf, kph = jax.random.split(key, 4)
     c = jax.random.uniform(kc, (NSUM,), minval=FOURIER_C_RANGE[0], maxval=FOURIER_C_RANGE[1])
@@ -196,8 +186,7 @@ def generate_fourier_fn(key, n_nodes=DEFAULT_N_NODES):
 def generate_grf_fn(key, n_nodes=DEFAULT_N_NODES):
     """Gaussian random process generator: zero-mean GP with a squared-
     exponential kernel over the grid, Cholesky-sampled, with a randomized
-    length scale for variety. Min-max normalized to [0,1] as in the paper
-    (Sect. 3.3, second generator)."""
+    length scale for variety. Min-max normalized to [0,1]."""
     x = jnp.linspace(0, 1, n_nodes)
     k_len, k_z = jax.random.split(key, 2)
     length_scale = jax.random.uniform(k_len, (), minval=0.05, maxval=0.4)
@@ -210,15 +199,15 @@ def generate_grf_fn(key, n_nodes=DEFAULT_N_NODES):
 
 @partial(jax.jit, static_argnames=("n_nodes",))
 def generate_constant_fn(key, n_nodes=DEFAULT_N_NODES):
-    """Constant-temperature generator (paper's third generator)."""
+    """Constant-field generator."""
     c = jax.random.uniform(key, ())
     return jnp.full((n_nodes,), c)
 
 
 @partial(jax.jit, static_argnames=("n_nodes",))
 def generate_T0_signal(key, n_nodes=DEFAULT_N_NODES):
-    """Mixture matching the paper's ~40% Fourier / 50% Gaussian / 10% constant
-    split of training samples, recentered from [0,1] to [-1,1] to match the
+    """Mixture of the three generators (40% Fourier / 50% Gaussian / 10%
+    constant), recentered from [0,1] to [-1,1] to match the
     perturbation-amplitude convention used in generate_T0_alpha below. Also
     reused there for the conductivity field alpha -- it's a generic
     diverse-smooth-field mixture, not something inherently temperature-specific."""
@@ -358,15 +347,15 @@ def build_ood_scenarios(n_total, res_choices=DEFAULT_OOD_RES_CHOICES, alpha_cons
 
 
 # =============================================================================
-# Disk-cached CONVERGED ground truth for the OOD stress test. build_ood_scenarios
+# Disk-cached converged ground truth for the OOD stress test. build_ood_scenarios
 # solves a fresh FEM trajectory AT each scenario's own (often coarse) resolution
-# -- fine for building the scenario's T0/alpha, but NOT a fair "ground truth" to
+# -- fine for building the scenario's T0/alpha, but not a fair "ground truth" to
 # grade a model against across resolutions: a coarse solve has its own real
 # discretization error (e.g. ~1% for Staircase at N_GRID=64), which then gets
 # conflated with the model's own error. precompute_ood_reference_dataset instead
-# solves each UNIQUE underlying shape ONCE at a fine reference_n_nodes mesh, then
+# solves each unique underlying shape once at a fine reference_n_nodes mesh, then
 # interpolates that one converged trajectory down onto every resolution actually
-# needed -- so every resolution is graded against the SAME true answer.
+# needed -- so every resolution is graded against the same true answer.
 # get_ood_reference_dataset is the entry point most callers want.
 # =============================================================================
 def precompute_ood_reference_dataset(path, res_choices=DEFAULT_OOD_RES_CHOICES, n_total=50,
@@ -375,7 +364,7 @@ def precompute_ood_reference_dataset(path, res_choices=DEFAULT_OOD_RES_CHOICES, 
                                       newton_iters=DEFAULT_NEWTON_ITERS, seed=101):
     """Mirrors build_ood_scenarios' exact scenario list (same families, same
     n_total, same resolution cycling for HF-Rand), but every scenario's
-    true_traj comes from interpolating ONE fine reference_n_nodes solve down
+    true_traj comes from interpolating one fine reference_n_nodes solve down
     to that scenario's resolution, not from solving fresh at that resolution.
     The 3 fixed families are solved once each (shared across every resolution
     they appear at); each HF-Rand draw is solved once (used at its one
@@ -475,12 +464,12 @@ def get_ood_reference_dataset(path, res_choices=DEFAULT_OOD_RES_CHOICES, n_total
 
 
 # =============================================================================
-# General OOD ground truth, solvable at ANY (n_nodes, dt) -- the OOD analogue of
+# General OOD ground truth, solvable at any (n_nodes, dt) -- the OOD analogue of
 # precompute_fine_trajectory / derive_dataset above. get_ood_reference_dataset
-# already debiases SPACE correctly (solves once at reference_n_nodes, interpolates
+# already debiases space correctly (solves once at reference_n_nodes, interpolates
 # down) but is pinned to a single dt=DEFAULT_DT. The functions below add the same
-# dt-generalization the in-distribution side got: solve each UNIQUE shape ONCE at a
-# fine reference mesh AND a fine reference dt, then derive any (n_nodes, dt) from
+# dt-generalization the in-distribution side got: solve each unique shape once at a
+# fine reference mesh and a fine reference dt, then derive any (n_nodes, dt) from
 # that single solve via exact interpolation/subsampling -- no re-solving, ever,
 # for any resolution or dt any script asks for.
 # =============================================================================
@@ -495,12 +484,12 @@ def precompute_ood_fine_trajectories(path, n_total=50, dt_ref=0.0002, steps_ref=
                                       reference_n_nodes=DEFAULT_REFERENCE_N_NODES, alpha_const=0.25,
                                       seed=101, rho_cp=DEFAULT_RHO_CP, newton_iters=DEFAULT_NEWTON_ITERS,
                                       chunk_size=8):
-    """Solve the ONE canonical fine trajectory for n_total OOD scenarios, split as
+    """Solve the one canonical fine trajectory for n_total OOD scenarios, split as
     evenly as possible across the 4 shape families -- Staircase (random transition
     center/width), Pyramid (random peak position), Asymmetric (random freqs/amps),
-    and HF-Rand (already random) -- at a fine reference mesh AND fine reference dt.
+    and HF-Rand (already random) -- at a fine reference mesh and fine reference dt.
     n_total need not be a multiple of 4: e.g. n_total=50 gives 13/13/12/12. Every
-    (n_nodes, dt) any script needs is derived from this ONE set of solves via
+    (n_nodes, dt) any script needs is derived from this one set of solves via
     derive_ood_dataset below, with no further FEM solving. Always recomputes -- use
     get_ood_fine_trajectories for the load-if-cached, else-compute version.
 
@@ -574,7 +563,7 @@ def get_ood_fine_trajectories(path, n_total=50, dt_ref=0.0002, steps_ref=1900,
 
 
 def derive_ood_dataset(fine_data, n_nodes_target, dt_target):
-    """Derive OOD ground truth at ANY (n_nodes_target, dt_target) from the fine
+    """Derive OOD ground truth at any (n_nodes_target, dt_target) from the fine
     trajectories above -- exact time stride-subsampling + spatial interpolation,
     no re-solving, mirroring derive_dataset for the in-distribution case. Returns a
     list of dicts in the same shape as build_ood_scenarios/get_ood_reference_dataset
@@ -658,13 +647,13 @@ def get_dataset(path, n_samples, max_steps, n_nodes=DEFAULT_N_NODES, seed_k=42, 
 
 
 # =============================================================================
-# Universal, resolution-independent reference: ONE fixed pool of in-distribution
+# Universal, resolution-independent reference: one fixed pool of in-distribution
 # (T0, alpha) fields, generated once at a fine reference_n_nodes mesh, then
-# resampled DOWN to whatever (n_nodes, dt, steps) any given script actually needs.
+# resampled down to whatever (n_nodes, dt, steps) any given script actually needs.
 #
 # Why this exists: get_dataset above solves generate_T0_alpha fresh at whatever
 # n_nodes you pass it -- fine if only one script, one resolution ever calls it,
-# but not fair for comparing FNOs trained/tested at DIFFERENT resolutions (or
+# but not fair for comparing FNOs trained/tested at different resolutions (or
 # different notebooks with different dt scales) against each other, since each
 # fresh solve's own discretization error gets conflated with the model's error
 # (same reasoning as precompute_ood_reference_dataset above, applied to the
@@ -672,9 +661,9 @@ def get_dataset(path, n_samples, max_steps, n_nodes=DEFAULT_N_NODES, seed_k=42, 
 #
 # The extra wrinkle here that OOD doesn't have: generate_T0_alpha's Gaussian-
 # random-process branch samples its field via a Cholesky factorization built ON
-# THE MESH ITSELF -- the same key at two different n_nodes gives two UNRELATED
+# the mesh itself -- the same key at two different n_nodes gives two unrelated
 # random fields, not two resolutions of the same field. Fixing the field
-# ONCE at a fine mesh here, and only ever interpolating it DOWN afterwards,
+# once at a fine mesh here, and only ever interpolating it down afterwards,
 # sidesteps that problem completely: every resolution gets a real, well-defined
 # coarsening of the exact same underlying field, GRF branch included.
 #
@@ -687,7 +676,7 @@ def get_dataset(path, n_samples, max_steps, n_nodes=DEFAULT_N_NODES, seed_k=42, 
 #                                    dt_ref=0.001, steps_ref=400)    # once, expensive
 #     data = derive_dataset(ref, n_nodes_target=64, dt_target=0.02)   # any (n_nodes, dt), no re-solve
 #
-#     # Scripts sharing pool_path always start from the SAME T0/alpha fields,
+#     # Scripts sharing pool_path always start from the same T0/alpha fields,
 #     # no matter what resolution/dt each one asks for.
 # =============================================================================
 
@@ -695,7 +684,7 @@ def get_dataset(path, n_samples, max_steps, n_nodes=DEFAULT_N_NODES, seed_k=42, 
 def resample_field(field, n_nodes_target):
     """Interpolate a 1D field on [0,1] (or a batch of them, any leading shape) from
     its native node count down (or up) to n_nodes_target. Only meaningful as "the
-    same case, different resolution" when going from a FINER native resolution to a
+    same case, different resolution" when going from a finer native resolution to a
     coarser target -- the reverse just interpolates, it doesn't invent new detail."""
     field = jnp.asarray(field)
     n_native = field.shape[-1]
@@ -711,7 +700,7 @@ def resample_field(field, n_nodes_target):
 
 def precompute_field_pool(path, n_samples, reference_n_nodes=DEFAULT_REFERENCE_N_NODES,
                            seed_k=42, seed_t=7):
-    """Generate and disk-cache ONE fixed pool of in-distribution (T0, alpha) pairs at
+    """Generate and disk-cache one fixed pool of in-distribution (T0, alpha) pairs at
     a fine reference_n_nodes mesh -- input fields only, no FEM solving (cheap, seconds
     not minutes). This is the single fixed pool every (n_nodes, dt) combination is
     derived from (get_reference_trajectory + derive_dataset below), instead of calling
@@ -764,7 +753,7 @@ def get_field_pool(path, n_samples, reference_n_nodes=DEFAULT_REFERENCE_N_NODES,
 def _chunked_batch_fem_rollout(T0_batch, alpha_batch, steps, dt, rho_cp, newton_iters, chunk_size):
     """Same result as batch_fem_rollout, computed sample-chunk by sample-chunk instead
     of vmapping the whole batch at once. solve_transient_fem_step's exact Jacobian
-    (jax.jacfwd) already needs O(n_nodes^2) memory for a SINGLE sample; batch_fem_rollout
+    (jax.jacfwd) already needs O(n_nodes^2) memory for a single sample; batch_fem_rollout
     vmaps that across the whole batch, so a large batch (e.g. 1000 samples at n_nodes=513)
     can ask for far more device memory than any GPU has in one shot (about 2 TB for
     batch=1000). Chunking bounds peak memory to chunk_size samples' worth, at the
@@ -790,7 +779,7 @@ def _chunked_batch_fem_rollout(T0_batch, alpha_batch, steps, dt, rho_cp, newton_
 
 def precompute_fine_trajectory(path, pool_path, dt_ref, steps_ref, n_samples=None,
                                 rho_cp=DEFAULT_RHO_CP, newton_iters=DEFAULT_NEWTON_ITERS, chunk_size=8):
-    """Solve the ONE canonical fine trajectory everything downstream derives from:
+    """Solve the one canonical fine trajectory everything downstream derives from:
     the fixed field pool's (T0, alpha) -- already at the pool's fine reference mesh,
     no resampling needed here -- rolled out at a fine reference (dt_ref, steps_ref).
     This is the single expensive solve in the whole pipeline (fine mesh x fine dt x
@@ -838,11 +827,11 @@ def get_reference_trajectory(path, pool_path, dt_ref, steps_ref, n_samples=None,
 
 
 def derive_dataset(reference_data, n_nodes_target, dt_target):
-    """Derive a (T0, alpha, trajectory) dataset at ANY (n_nodes_target, dt_target)
-    from the ONE canonical fine trajectory (get_reference_trajectory above) -- by
+    """Derive a (T0, alpha, trajectory) dataset at any (n_nodes_target, dt_target)
+    from the one canonical fine trajectory (get_reference_trajectory above) -- by
     exact time stride-subsampling (dt_target must be an exact multiple of the
     reference's own dt -- see subsample_to_dt) and spatial interpolation
-    (resample_field). Solves NOTHING: this never re-runs Newton-Raphson, it only
+    (resample_field). Solves nothing: this never re-runs Newton-Raphson, it only
     re-views the single already-accurate reference solve, so the result is exactly
     as spatially/temporally accurate as that one reference, no matter how coarse
     n_nodes_target/dt_target are -- this is what actually makes the ground truth
@@ -876,7 +865,7 @@ def subsample_to_dt(trajectory, fine_dt, target_dt):
 
 
 # =============================================================================
-# STEADY STATE of the same rod: d/dx( k(x,T) dT/dx ) = 0, k(x,T) = alpha(x)*(0.5+T^2),
+# Steady state of the same rod: d/dx( k(x,T) dT/dx ) = 0, k(x,T) = alpha(x)*(0.5+T^2),
 # T(0)=1, T(1)=0 -- i.e. the t -> infinity limit of the transient problem above,
 # with the time term dropped. In FEM form K(T) T = 0 on the free nodes, solved with
 # Newton-Raphson (exact Jacobian, jax.jacfwd), reusing assemble_LM's stiffness
@@ -884,7 +873,7 @@ def subsample_to_dt(trajectory, fine_dt, target_dt):
 #
 # The steady answer depends on alpha only (every initial state relaxes to the same
 # steady field), so the steady dataset is alpha(x) -> T(x). Like the transient side,
-# the ground truth is solved ONCE on a fine mesh and interpolated down:
+# the ground truth is solved once on a fine mesh and interpolated down:
 #
 #     from fem_ground_truth import get_steady_reference, derive_steady_dataset, derive_steady_ood
 #     ref = get_steady_reference("checkpoints/steady_reference.npz", "checkpoints/field_pool.npz")
@@ -899,7 +888,7 @@ DEFAULT_STEADY_REFERENCE_N_NODES = 511   # 2*255+1: nests the field pool's 256-n
                                          # so the pool's alpha is represented without re-interpolation
 # alpha range of the in-distribution pool: generate_T0_alpha maps a [-1,1] signal through
 # sigmoid(.)*0.4+0.1. The OOD alpha shapes below use the same range, so they are novel in
-# SHAPE only, not in magnitude.
+# shape only, not in magnitude.
 STEADY_ALPHA_MIN = float(jax.nn.sigmoid(-1.0) * 0.4 + 0.1)
 STEADY_ALPHA_MAX = float(jax.nn.sigmoid(1.0) * 0.4 + 0.1)
 
@@ -1008,7 +997,7 @@ _STEADY_OOD_FNS = {"Layered": get_layered_alpha, "Inclusion": get_inclusion_alph
 def precompute_steady_reference(path, pool_path, reference_n_nodes=DEFAULT_STEADY_REFERENCE_N_NODES,
                                 n_ood=50, ood_seed=303, newton_iters=DEFAULT_STEADY_NEWTON_ITERS):
     """Solve the steady ground truth once on the fine mesh and cache it (.npz):
-    - in-distribution: every alpha of the fixed field pool (the SAME alpha fields the
+    - in-distribution: every alpha of the fixed field pool (the same alpha fields the
       transient chapters use), interpolated onto the fine mesh;
     - OOD: n_ood unseen alpha shapes split evenly over STEADY_OOD_FAMILIES.
     Run with jax_enable_x64=True for a float64 reference. Always recomputes -- use

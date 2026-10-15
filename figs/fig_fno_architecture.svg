@@ -33,7 +33,7 @@
   <text x="470" y="47" text-anchor="middle" class="tag">4 × Spectral Convolution layers</text>
 
   <rect x="325" y="90" width="130" height="80" rx="8" class="box spec"/>
-  <text x="390" y="112" text-anchor="middle" class="small">FFT  &#8594;  keep k</text>
+  <text x="390" y="112" text-anchor="middle" class="small">FFT  &#8594;  keep 4</text>
   <text x="390" y="130" text-anchor="middle" class="small">low modes</text>
   <text x="390" y="150" text-anchor="middle" class="small">× R  &#8594;  iFFT</text>
 
@@ -47,11 +47,11 @@
   <!-- Project -->
   <rect x="670" y="90" width="95" height="80" rx="8" class="box proj"/>
   <text x="717" y="120" text-anchor="middle" class="lbl">Project Q</text>
-  <text x="717" y="140" text-anchor="middle" class="small">64 &#8594; 1</text>
+  <text x="717" y="140" text-anchor="middle" class="small">64 &#8594; 64 &#8594; 1</text>
 
   <!-- Residual update -->
   <rect x="800" y="90" width="120" height="80" rx="8" class="box"/>
-  <text x="860" y="118" text-anchor="middle" class="small">T&#8345; + mask·&#916;T</text>
+  <text x="860" y="118" text-anchor="middle" class="small">T&#8345; + &#916;t·mask·Ṫ</text>
   <text x="860" y="140" text-anchor="middle" class="small">= T&#8345;&#8330;&#8321;</text>
 
   <!-- arrows -->

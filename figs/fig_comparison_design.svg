@@ -6,7 +6,7 @@
     .chip{font-size:10.5px;fill:#334155;}
   </style>
   <text x="20" y="28" class="t">Study design &#8212; 12 models: 4 architectures &#215; 3 capacity tiers</text>
-  <text x="20" y="49" class="s">A plan, not results. Each cell is one model, trained on the same data, optimizer, and epochs (a fair comparison).</text>
+  <text x="20" y="49" class="s">A plan, not results. Each cell is one model, trained on the same data, optimizer, and number of training steps (a fair comparison).</text>
   <rect x="150" y="70" width="180" height="40" rx="6" fill="#dc2626"/><text x="240" y="95" text-anchor="middle" class="hdr">FNO</text>
   <rect x="335" y="70" width="180" height="40" rx="6" fill="#2563eb"/><text x="425" y="95" text-anchor="middle" class="hdr">DeepONet</text>
   <rect x="520" y="70" width="180" height="40" rx="6" fill="#16a34a"/><text x="610" y="95" text-anchor="middle" class="hdr">iFOL</text>

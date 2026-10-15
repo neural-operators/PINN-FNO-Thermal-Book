@@ -7,3 +7,5 @@ checkpoints/fine_reference.npz
 checkpoints/ood_fine_reference.pkl
 # figure files saved as by-products by the transient notebooks (figures are embedded in the .ipynb)
 *.png
+# conceptual figures referenced by the chapters
+!figures/*.png

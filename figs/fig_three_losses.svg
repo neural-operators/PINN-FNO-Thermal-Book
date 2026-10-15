@@ -22,8 +22,8 @@
 
   <rect x="340" y="150" width="270" height="80" rx="9" fill="#dcfce7" stroke="#15803d" stroke-width="2.4"/>
   <text x="475" y="178" text-anchor="middle" class="l" font-weight="700" fill="#166534">Weighted residual (FOL)  &#9733;</text>
-  <text x="475" y="200" text-anchor="middle" class="s">&#931; T&#770;&#183;r  &#8212;  prediction is the test function</text>
-  <text x="475" y="219" text-anchor="middle" class="s">Galerkin projection of the weak form</text>
+  <text x="475" y="200" text-anchor="middle" class="s">&#931; T&#770;&#183;sg(r)  &#8212;  residual held fixed</text>
+  <text x="475" y="219" text-anchor="middle" class="s">each update moves T&#770; along &#8722;r</text>
 
   <rect x="340" y="255" width="270" height="70" rx="9" fill="#fee2e2" stroke="#b91c1c" stroke-width="1.6"/>
   <text x="475" y="282" text-anchor="middle" class="l" font-weight="600" fill="#991b1b">Data-driven</text>

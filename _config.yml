@@ -1,9 +1,9 @@
 title: "Neural Operators for Nonlinear Heat Conduction"
-author: Negin
+author: Negin Farhadi
 # logo: logo.png   # uncomment once you add a logo file
 
 repository:
-  url: https://github.com/neginfr93-eng/PINN-FNO-Thermal-Book
+  url: https://github.com/neural-operators/PINN-FNO-Thermal-Book
   path_to_book: ""
   branch: main
 
@@ -27,3 +27,7 @@ parse:
 exclude_patterns:
   - requirements.txt
   - _build
+  - CLAUDE.md
+  - checkpoints
+  - "**/__pycache__"
+  - "**/.ipynb_checkpoints"

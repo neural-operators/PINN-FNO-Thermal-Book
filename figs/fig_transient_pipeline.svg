@@ -20,7 +20,7 @@
   <text x="105" y="95" text-anchor="middle" class="l" font-weight="600">Sample random</text>
   <text x="105" y="120" text-anchor="middle" class="s">initial field  T&#8320;(x)</text>
   <text x="105" y="142" text-anchor="middle" class="s">material profile  &#945;(x)</text>
-  <text x="105" y="164" text-anchor="middle" class="s">(sines + step edges)</text>
+  <text x="105" y="164" text-anchor="middle" class="s">(Fourier / GRF / constant)</text>
 
   <!-- FEM solver -->
   <rect x="230" y="70" width="200" height="110" rx="9" class="b fem"/>
@@ -33,7 +33,7 @@
   <rect x="470" y="70" width="180" height="110" rx="9" class="b"/>
   <text x="560" y="94" text-anchor="middle" class="l" font-weight="600">Trajectory</text>
   <text x="560" y="120" text-anchor="middle" class="s">T&#8320;, T&#8321;, T&#8322;, &#8230;, T&#8345;</text>
-  <text x="560" y="145" text-anchor="middle" class="s">(20 time steps</text>
+  <text x="560" y="145" text-anchor="middle" class="s">(20 states</text>
   <text x="560" y="163" text-anchor="middle" class="s">× 1000 samples)</text>
 
   <!-- pairs -->
