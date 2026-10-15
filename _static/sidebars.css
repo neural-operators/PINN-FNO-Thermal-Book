@@ -1,0 +1,38 @@
+/* Collapsible sidebars on wide screens (see sidebars.js).
+   Both sidebars start hidden; the header buttons open and close them.
+   Below 992px the theme's own mobile layout is left unchanged. */
+@media (min-width: 992px) {
+  html.sbx-hide-primary .bd-sidebar-primary,
+  html.sbx-hide-secondary .bd-sidebar-secondary {
+    display: none !important;
+  }
+
+  /* the theme hides the right-sidebar button on wide screens; show it */
+  label.sidebar-toggle.secondary-toggle {
+    display: inline-flex !important;
+  }
+
+  /* let the chapter use the full window width */
+  .bd-page-width {
+    max-width: none;
+  }
+  .bd-main .bd-content .bd-article-container {
+    max-width: none;
+  }
+}
+
+/* Between 992px and 1200px the theme turns the right sidebar into a hidden
+   drawer; keep it in the page layout instead, so the button behaves the same
+   at every width. */
+@media (min-width: 992px) and (max-width: 1199.98px) {
+  html:not(.sbx-hide-secondary) .bd-sidebar-secondary {
+    position: sticky;
+    top: var(--pst-header-height, 0);
+    visibility: visible;
+    margin-right: 0;
+    width: auto;
+    max-width: 18rem;
+    height: calc(100vh - var(--pst-header-height, 0px));
+    z-index: auto;
+  }
+}

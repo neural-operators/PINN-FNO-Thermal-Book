@@ -23,6 +23,22 @@ parse:
     - amsmath      # LaTeX align/equation environments
     - dollarmath   # $...$ and $$...$$ math
 
+# Theme options. Setting html_theme_options here replaces Jupyter Book's defaults
+# entirely, so the defaults (repository buttons, search text) are repeated in full.
+# show_toc_level: 2 keeps the right sidebar ("Contents") expanded to subsections.
+sphinx:
+  config:
+    html_theme_options:
+      show_toc_level: 2
+      search_bar_text: "Search this book..."
+      path_to_docs: ""
+      repository_url: https://github.com/neural-operators/PINN-FNO-Thermal-Book
+      repository_branch: main
+      home_page_in_toc: true
+      use_repository_button: true
+      use_edit_page_button: true
+      use_issues_button: true
+
 # keep project/helper files out of the published site
 exclude_patterns:
   - requirements.txt
