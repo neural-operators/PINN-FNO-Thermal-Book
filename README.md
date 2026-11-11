@@ -61,3 +61,5 @@ reading in order builds the ideas from the ground up.
 Students and researchers with a basic background in calculus, numerical methods and Python
 who want an example-based introduction to physics-informed learning and neural operators. No prior experience
 with neural operators is assumed.
+
+License: CC-BY-4.0
