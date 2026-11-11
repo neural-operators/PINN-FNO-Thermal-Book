@@ -1,4 +1,9 @@
 # Neural Operators for Nonlinear Heat Conduction
+[![DOI](https://zenodo.org/badge/1262767711.svg)](https://doi.org/10.5281/zenodo.24133455)
+
+**Authors:** Negin Farhadi, Kianoosh Taghikhani, Shahed Rezaei
+
+**Read online:** https://neural-operators.github.io/PINN-FNO-Thermal-Book
 
 This book introduces machine-learning methods for nonlinear heat conduction, from classical
 solvers and physics-informed neural networks to neural operators that learn the solution map
@@ -61,5 +66,9 @@ reading in order builds the ideas from the ground up.
 Students and researchers with a basic background in calculus, numerical methods and Python
 who want an example-based introduction to physics-informed learning and neural operators. No prior experience
 with neural operators is assumed.
+
+## How to cite
+
+Farhadi, N., Taghikhani, K., & Rezaei, S. (2026). *Neural Operators for Nonlinear Heat Conduction* [Book]. Zenodo. https://doi.org/10.5281/zenodo.24133455
 
 License: CC-BY-4.0
