@@ -4,9 +4,9 @@
   "publication_type": "book",
   "description": "An educational book on physics-informed neural networks and neural operators for nonlinear heat conduction, with theory, code and figures.",
   "creators": [
-    { "name": "Farhadi, Negin" },
-    { "name": "Rezaei, Shahed" },
-    { "name": "Taghikhani, Kianoosh" }
+    { "name": "Farhadi, Negin", "affiliation": "ACCESS e.V.; RWTH Aachen University" },
+    { "name": "Taghikhani, Kianoosh", "affiliation": "ACCESS e.V.; RWTH Aachen University" },
+    { "name": "Rezaei, Shahed", "affiliation": "ACCESS e.V.; RWTH Aachen University", "orcid": "0000-0002-2842-3692" }
   ],
   "license": "cc-by-4.0",
   "keywords": ["neural operators", "Fourier neural operator", "physics-informed", "heat conduction", "finite elements"]
