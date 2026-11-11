@@ -1,0 +1,13 @@
+{
+  "title": "Neural Operators for Nonlinear Heat Conduction",
+  "upload_type": "publication",
+  "publication_type": "book",
+  "description": "An educational book on physics-informed neural networks and neural operators for nonlinear heat conduction, with theory, code and figures.",
+  "creators": [
+    { "name": "Farhadi, Negin" },
+    { "name": "Rezaei, Shahed" },
+    { "name": "Taghikhani, Kianoosh" }
+  ],
+  "license": "cc-by-4.0",
+  "keywords": ["neural operators", "Fourier neural operator", "physics-informed", "heat conduction", "finite elements"]
+}
